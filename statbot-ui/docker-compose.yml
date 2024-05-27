@@ -1,0 +1,32 @@
+services:
+    api:
+        build:
+            context: ./api
+            dockerfile: dockerfile
+        image:
+            statbot-api
+        environment:
+            - GPTSERVER=${GPTSERVER}
+            - LLAMA7BSERVER=${LLAMA7BSERVER}
+            - LLAMA70BSERVER=${LLAMA70BSERVER}
+            - DB_HOST=${DB_HOST}
+            - DB_PORT=${DB_PORT}
+            - DB_SCHEMA=${DB_SCHEMA}
+            - DB_PASS=${DB_PASS}
+            - DB_USERNAME=${DB_USERNAME}
+            - DB_DATABASE=${DB_DATABASE}
+        volumes:
+            - ./userdata:/app/userdata:consistent
+    ui:
+        build:
+            context: ./ui
+            dockerfile: dockerfile
+            args:
+                REACT_APP_ADMIN_MAIL: ${ADMIN_MAIL}
+        image:
+            statbot-ui
+        ports:
+            - 80:80
+        depends_on:
+            - api
+        

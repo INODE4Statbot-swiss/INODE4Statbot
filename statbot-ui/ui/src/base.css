@@ -1,0 +1,13 @@
+div.flexcenter
+{
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+div.flexright
+{
+	display: flex;
+	justify-content: right;
+	align-items: center;
+}

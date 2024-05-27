@@ -1,0 +1,14 @@
+@import url("base.css");
+
+table.layout tr.layout
+{
+	vertical-align: middle;
+}
+
+table.layout td.layout
+{
+	border: none;
+	padding: 10px;
+	vertical-align: inherit;
+	text-align: center;
+}

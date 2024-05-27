@@ -1,0 +1,34 @@
+FROM nvidia/cuda:11.8.0-base-ubuntu20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && \
+    apt-get install -y \
+        git \
+        python3-pip \
+        python3-dev \
+        python3-opencv \
+        libglib2.0-0 \
+		libpq-dev
+
+RUN mkdir intent
+WORKDIR intent
+
+RUN python3 -m pip install --upgrade pip
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+RUN mkdir src
+ADD src src
+
+RUN mkdir data
+COPY data/*queries.json data
+
+COPY .env .
+COPY run.sh .
+RUN chmod +x run.sh
+
+RUN python3 src/preparebert.py
+
+CMD ["./run.sh"]

@@ -1,0 +1,43 @@
+@import url("base.css");
+
+h1 > #statbot
+{
+	font-size: 48pt;
+	font-variant: small-caps;
+	letter-spacing: 3px;
+}
+
+h1 > #swiss
+{
+	font-size: 36pt;
+	letter-spacing: 4px;
+	color: red;
+}
+
+div#devmodeswitch
+{
+	 position:fixed;
+	 z-index:100;
+	 bottom:20px;
+	 right:20px;
+	 justify-content:center;
+	 align-items:center; 
+}
+
+div#logoutbutton
+{
+	position: absolute;
+	top: 20px;
+	right: 20px;
+	justify-content:center;
+	align-items:center;
+}
+
+div#promodebutton
+{
+	position: absolute;
+	top: 20px;
+	left: 20px;
+	justify-content:center;
+	align-items:center;
+}

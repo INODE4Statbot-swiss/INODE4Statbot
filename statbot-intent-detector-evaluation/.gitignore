@@ -1,0 +1,6 @@
+.env
+data/tableinfo.json
+data/statbotrepo
+python
+dev
+src/__pycache__
