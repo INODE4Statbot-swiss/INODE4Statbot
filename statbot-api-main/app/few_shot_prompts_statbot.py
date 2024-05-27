@@ -1,7 +1,7 @@
 from langchain import PromptTemplate
 
 
-def one_shot_template_baby_names():
+def few_shot_template_baby_names():
 
     prompt = '''
     This is a task converting text into SQL statement.
@@ -44,9 +44,9 @@ def one_shot_template_baby_names():
             WHERE su.municipal = True
             Group by bnff.first_name, bnnf.gender, su.spatialunit_ontology
     
-    Only use the tables listed in the schema information.
+    Only use the tables listed in the Database Schema information.
 
-    [Schema]:\n{table_info}
+    [Database Schema]:\n{table_info}
     [Q]: {input}
     [SQL]: 
     '''
@@ -56,7 +56,7 @@ def one_shot_template_baby_names():
     )
     return few_shot_prompt_template
 
-def one_shot_template_stock_vehicles():
+def few_shot_template_stock_vehicles():
     prompt = '''
     This is a task converting text into SQL statement.
     We will first given the dataset schema and then ask a question in text. 
@@ -94,9 +94,9 @@ def one_shot_template_stock_vehicles():
             WHERE S.name ilike '%Z_rich'  and T.year=2020 and S.municipal=True
             GROUP BY S.name
 
-    Only use the tables listed in the schema information.
+    Only use the tables listed in the Database Schema information.
 
-    [Schema]:\n{table_info}
+    [Database Schema]:\n{table_info}
     [Q]: {input}
     [SQL]: 
     '''
@@ -106,7 +106,7 @@ def one_shot_template_stock_vehicles():
     )
     return few_shot_prompt_template
 
-def one_shot_template_marriage_citizenship():
+def few_shot_template_marriage_citizenship():
     prompt = '''
     This is a task converting text into SQL statement.
     We will first given the dataset schema and then ask a question in text. 
@@ -142,19 +142,20 @@ def one_shot_template_marriage_citizenship():
         JOIN spatial_unit T2 on T1.spatialunit_uid = T2.spatialunit_uid 
         WHERE T2.canton = True AND T1.year = 2010 AND T1.citizenship_category_husband = 'Foreign country' AND T1.citizenship_category_wife ='Foreign country' ORDER BY T1.amount DESC LIMIT 5
 
-    Only use the tables listed in the schema information.
+    Only use the tables listed in the Database Schema information.
 
-    [Schema]:\n{table_info}
+    [Database Schema]:\n{table_info}
     [Q]: {input}
     [SQL]: 
     '''
-    zero_shot_prompt_template = PromptTemplate(
+
+    few_shot_prompt_template = PromptTemplate(
         input_variables=["input", "table_info"],
         template=prompt,
     )
-    return zero_shot_prompt_template
+    return few_shot_prompt_template
 
-def one_shot_template_resident_population_birthplace_citizenship_type():
+def few_shot_template_resident_population_birthplace_citizenship_type():
     prompt = '''
     This is a task converting text into SQL statement.
     We will first given the dataset schema and then ask a question in text. 
@@ -188,19 +189,19 @@ def one_shot_template_resident_population_birthplace_citizenship_type():
         JOIN spatial_unit AS T2 ON T1.spatialunit_uid = T2.spatialunit_uid 
         WHERE T2.canton=True AND T2.name ilike '%Z_rich%' AND T1.place_of_birth ='Abroad' AND T1.citizenship ilike '%Brazil%' GROUP BY T2.name, T1.place_of_birth, T1.citizenship
     
-    Only use the tables listed in the schema information.
+    Only use the tables listed in the Database Schema information.
 
-    [Schema]:\n{table_info}
+    [Database Schema]:\n{table_info}
     [Q]: {input}
     [SQL]: 
     '''
-    zero_shot_prompt_template = PromptTemplate(
+    few_shot_prompt_template = PromptTemplate(
         input_variables=["input", "table_info"],
         template=prompt,
     )
-    return zero_shot_prompt_template
+    return few_shot_prompt_template
 
-def one_shot_template_divorces_duration_of_marriage_citizenship_categories():
+def few_shot_template_divorces_duration_of_marriage_citizenship_categories():
     prompt = '''
     This is a task converting text into SQL statement.
     We will first given the dataset schema and then ask a question in text. 
@@ -233,19 +234,19 @@ def one_shot_template_divorces_duration_of_marriage_citizenship_categories():
         WHERE d.year = 1995 AND su.municipal = True AND d.duration_of_marriage = 'Duration of marriage - total' AND d.citizenship_category_husband = 'Switzerland' AND d.citizenship_category_wife = 'Switzerland' 
         GROUP BY su.name, d.year ORDER BY total_divorces DESC LIMIT 1
 
-    Only use the tables listed in the schema information.
+    Only use the tables listed in the Database Schema information.
 
-    [Schema]:\n{table_info}
+    [Database Schema]:\n{table_info}
     [Q]: {input}
     [SQL]: 
     '''
-    zero_shot_prompt_template = PromptTemplate(
+    few_shot_prompt_template = PromptTemplate(
         input_variables=["input", "table_info"],
         template=prompt,
     )
-    return zero_shot_prompt_template
+    return few_shot_prompt_template
 
-def one_shot_template_divorces_duration_of_marriage_age_classes():
+def few_shot_template_divorces_duration_of_marriage_age_classes():
     prompt = '''
     This is a task converting text into SQL statement.
     We will first given the dataset schema and then ask a question in text. 
@@ -265,9 +266,27 @@ def one_shot_template_divorces_duration_of_marriage_age_classes():
     ORDER BY total_divorces D
     ESC LIMIT 1
 
-    Only use the tables listed in the schema information.
+    Only use the tables listed in the Database Schema information.
 
-    [Schema]:\n{table_info}
+    [Database Schema]:\n{table_info}
+    [Q]: {input}
+    [SQL]: 
+    '''
+    few_shot_prompt_template = PromptTemplate(
+        input_variables=["input", "table_info"],
+        template=prompt,
+    )
+    return few_shot_prompt_template
+
+def zero_shot_template():
+    prompt = '''
+    This is a task converting text into SQL statement.
+    We will first given the dataset schema and then ask a question in text. 
+    Translate the question into the language of the database schema when the languages of the question and the database schema differ.
+    You are asked to generate SQL statement.
+    For counting use sum(amount) every time.
+
+    [Database Schema]:\n{table_info}
     [Q]: {input}
     [SQL]: 
     '''
@@ -276,149 +295,3 @@ def one_shot_template_divorces_duration_of_marriage_age_classes():
         template=prompt,
     )
     return zero_shot_prompt_template
-
-
-'''
-To translate a question to an SQL query, you can follow these steps:
-
-Identify the key elements of the question:
-Try to break down the question into its essential components, such as the tables involved, the relationships between them, and the action or operation being performed.
-Example: If the question is "What is the total cost of all products sold by a particular seller on an e-commerce platform?", the key elements are the tables involved (products, sellers), the relationship between them (a seller can sell multiple products), and the action or operation being performed (calculating the total cost).
-Determine the appropriate SQL query syntax:
-Depending on the database management system (DBMS) you are using, there may be different syntax for writing SQL queries. However, most SQL queries follow a similar structure: SELECT statements to retrieve data, FROM clauses to specify the tables involved, WHERE clauses to filter data based on conditions, and ORDER BY clauses to sort data.
-Example (MySQL): "SELECT SUM(cost) FROM products WHERE seller_id = 10;".
-Use logical operators and conditions:
-Logical operators such as AND, OR, and NOT can be used to build complex conditions in your SQL query. These operators allow you to combine multiple conditions to filter or manipulate data.
-Example: "SELECT * FROM products WHERE (price > 100 AND seller_id = 10) OR (inventory > 100);".
-Use aggregation functions:
-Aggregation functions such as COUNT, SUM, AVG, and MIN/MAX can be used to perform calculations on large datasets. These functions can help you summarize and analyze data in your SQL query.
-Example: "SELECT AVG(price) FROM products WHERE seller_id = 10;".
-Optimize your query:
-Depending on the complexity of your query, there may be ways to optimize it for better performance. This can involve things like indexing columns, using subqueries instead of joins, or rearranging the order of conditions.
-Example: "SELECT * FROM products ORDER BY seller_id, price;".
-By following these steps, you can translate a question into a well-formulated SQL query that retrieves the desired data from a database
-'''
-
-
-'''
-However, here is a general guide to help you translate a question into an SQL query:
-
-Understand the Question:
-
-Read the question carefully to understand what information is being requested. Identify the key components of the question, such as the tables involved, conditions, and the desired output.
-Identify the Tables:
-
-Determine which database tables contain the relevant data for answering the question. You'll need to know the names of these tables.
-Select the Columns:
-
-Identify the columns (attributes) from the tables that are needed to answer the question. These columns will appear in the SELECT clause of your SQL query.
-Define Filters (WHERE Clause):
-
-Determine any conditions or filters that need to be applied to the data. These conditions should be specified in the WHERE clause of your SQL query. Use operators like =, <, >, LIKE, AND, OR, etc., as needed.
-Determine Sorting (ORDER BY Clause):
-
-Decide if the results should be sorted in a particular order. If so, specify the sorting criteria in the ORDER BY clause of your SQL query. You can sort in ascending (ASC) or descending (DESC) order.
-Grouping and Aggregation (GROUP BY and HAVING Clauses, if needed):
-
-If the question involves aggregation functions like COUNT, SUM, AVG, etc., or requires grouping data by certain columns, use the GROUP BY clause. Additionally, if you want to filter aggregated results, you can use the HAVING clause.
-Joining Tables (if multiple tables are involved):
-
-If the question involves data from multiple tables, you'll likely need to perform JOIN operations to combine them. Use JOIN, LEFT JOIN, RIGHT JOIN, or INNER JOIN clauses to connect tables based on common keys.
-Write the SQL Query:
-
-Now that you've gathered all the necessary information, write the SQL query. Start with the SELECT clause, followed by the FROM clause (specifying the tables), then add the WHERE clause (if needed), GROUP BY (if needed), HAVING (if needed), and finally, the ORDER BY clause.
-'''
-
-'''
-Question: Start by presenting the question you want to translate into an SQL query. Be as specific and clear as possible about what information you need from the database.
-
-Context (if applicable): Provide any necessary context or information about the database schema, relevant tables, and columns. This helps ChatGPT understand the data source.
-
-Desired Output: Explain what you want the SQL query to retrieve or accomplish. This helps clarify the goal of the query.
-
-Additional Instructions (if needed): If there are specific conditions, sorting requirements, or other constraints, specify them here. You can also specify the database system you're using (e.g., MySQL, PostgreSQL, SQLite) if it's relevant.
-
-Here's an example instruction:
-
-"
-Question: Retrieve the names and ages of all customers who made a purchase in the last month from the "Customers" and "Orders" tables.
-
-Context: The database contains two tables, "Customers" and "Orders." The "Customers" table has columns: CustomerID, FirstName, LastName, and Age. The "Orders" table has columns: OrderID, CustomerID, OrderDate.
-
-Desired Output: I want to see a list of customer names and ages for those who made a purchase in the last month.
-
-Additional Instructions: Please use SQL syntax compatible with PostgreSQL.
-"
-By providing a clear question, context, desired output, and any additional instructions, you help ChatGPT generate a more accurate SQL query tailored to your specific needs. This structured approach improves the chances of getting a relevant and correct SQL query as a response, whether you're using llam2 or any other AI model.
-
-'''
-
-'''
-I have some texts along with their corresponding scores. The texts are arranged in ascending order
-based on their scores, where higher scores indicate better quality.
-
-text:
-"To translate a question to an SQL query, you can follow these steps:
-Identify the key elements of the question:
-Try to break down the question into its essential components, such as the tables involved, the relationships between them, and the action or operation being performed.
-Example: If the question is "What is the total cost of all products sold by a particular seller on an e-commerce platform?", the key elements are the tables involved (products, sellers), the relationship between them (a seller can sell multiple products), and the action or operation being performed (calculating the total cost).
-Determine the appropriate SQL query syntax:
-Depending on the database management system (DBMS) you are using, there may be different syntax for writing SQL queries. However, most SQL queries follow a similar structure: SELECT statements to retrieve data, FROM clauses to specify the tables involved, WHERE clauses to filter data based on conditions, and ORDER BY clauses to sort data.
-Example (MySQL): "SELECT SUM(cost) FROM products WHERE seller_id = 10;".
-Use logical operators and conditions:
-Logical operators such as AND, OR, and NOT can be used to build complex conditions in your SQL query. These operators allow you to combine multiple conditions to filter or manipulate data.
-Example: "SELECT * FROM products WHERE (price > 100 AND seller_id = 10) OR (inventory > 100);".
-Use aggregation functions:
-Aggregation functions such as COUNT, SUM, AVG, and MIN/MAX can be used to perform calculations on large datasets. These functions can help you summarize and analyze data in your SQL query.
-Example: "SELECT AVG(price) FROM products WHERE seller_id = 10;".
-Optimize your query:
-Depending on the complexity of your query, there may be ways to optimize it for better performance. This can involve things like indexing columns, using subqueries instead of joins, or rearranging the order of conditions.
-Example: "SELECT * FROM products ORDER BY seller_id, price;".
-By following these steps, you can translate a question into a well-formulated SQL query that retrieves the desired data from a database"
-
-score:
-73
-
-text:
-"To translate a question to an SQL query, you can follow these steps,
-Here is a general guide to help you translate a question into an SQL query:
--Understand the Question:
-Read the question carefully to understand what information is being requested. Identify the key components of the question, such as the tables involved, conditions, and the desired output.
--Identify the Tables:
-Determine which database tables contain the relevant data for answering the question. You'll need to know the names of these tables.
--Select the Columns:
-Identify the columns (attributes) from the tables that are needed to answer the question. These columns will appear in the SELECT clause of your SQL query.
--Define Filters (WHERE Clause):
-Determine any conditions or filters that need to be applied to the data. These conditions should be specified in the WHERE clause of your SQL query. Use operators like =, <, >, LIKE, AND, OR, etc., as needed.
--Determine Sorting (ORDER BY Clause):
-Decide if the results should be sorted in a particular order. If so, specify the sorting criteria in the ORDER BY clause of your SQL query. You can sort in ascending (ASC) or descending (DESC) order.
--Grouping and Aggregation (GROUP BY and HAVING Clauses, if needed):
-If the question involves aggregation functions like COUNT, SUM, AVG, etc., or requires grouping data by certain columns, use the GROUP BY clause. Additionally, if you want to filter aggregated results, you can use the HAVING clause.
--Joining Tables (if multiple tables are involved):
-If the question involves data from multiple tables, you'll likely need to perform JOIN operations to combine them. Use JOIN, LEFT JOIN, RIGHT JOIN, or INNER JOIN clauses to connect tables based on common keys.
--Write the SQL Query:
-Now that you've gathered all the necessary information, write the SQL query. Start with the SELECT clause, followed by the FROM clause (specifying the tables), then add the WHERE clause (if needed), GROUP BY (if needed), HAVING (if needed), and finally, the ORDER BY clause."
-
-score:
-80
-
-The following exemplar show how to apply your text: you need to generate another instruction and replace <INSTRUCTION> in each input with your
-text, then read the input and give an output. We say your output is wrong if your output is different
-from the given output, and we say your output is correct if they are the same.
-
-input:
-Q:What were the most commonly given first names to baby girls in canton bern in the year 2010?
-
-A: <INSTRUCTION>
-
-ouput:SELECT bnff.first_name, bnff.amount
-        FROM baby_names_favorite_firstname as bnff JOIN spatial_unit as su ON bnff.spatialunit_uid = su.spatialunit_uid
-        WHERE su.canton = True and bnff.year=2010 and su.name ilike '%bern' and bnff.gender='girl'
-        ORDER BY bnff.amount DESC
-        LIMIT 100;
-
-
-        
-Write your new text that is different from the old ones and has a score as high as possible. Write the
-text in square brackets.
-'''

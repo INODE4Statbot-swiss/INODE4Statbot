@@ -7,13 +7,14 @@ Statbot-API is an API to query SWISS OGD via NL questions.
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install all dependencies.
 
 ```bash
-pip install -r requirements.txt
+pip install -r docker/requirements.txt
 ```
-
+create `.env` file and set:
+    `OPENAI_API_KEY=[OPENAI_API_KEY]`
 ## Usage
 
 ```bash
-uvicorn app.main:app --reload
+python app/main.py
 ```
 
 ## Docs:

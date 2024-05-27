@@ -4,7 +4,7 @@ import time
 import os
 from sqlalchemyWrapper import *
 from langchain import OpenAI
-from one_shot_prompts_statbot import *
+from few_shot_prompts_statbot import *
 from langchain import LLMChain
 import tiktoken
 
@@ -19,27 +19,25 @@ def num_tokens_from_string(string: str, encoding_name: str) -> int:
 def find_template(table_name):
     
     if table_name=="baby_names_favorite_firstname":
-        return one_shot_template_baby_names()
+        return few_shot_template_baby_names()
     elif table_name =="divorces_duration_of_marriage_citizenship_categories":
-        return one_shot_template_divorces_duration_of_marriage_citizenship_categories()
+        return few_shot_template_divorces_duration_of_marriage_citizenship_categories()
     elif table_name =="stock_vehicles":
-        return one_shot_template_stock_vehicles()
+        return few_shot_template_stock_vehicles()
     elif table_name =="divorces_duration_of_marriage_age_classes":
-        return one_shot_template_divorces_duration_of_marriage_age_classes()
+        return few_shot_template_divorces_duration_of_marriage_age_classes()
     elif table_name == "marriage_citizenship":
-        return one_shot_template_marriage_citizenship()
+        return few_shot_template_marriage_citizenship()
     elif table_name =="resident_population_birthplace_citizenship_type":
-        return one_shot_template_resident_population_birthplace_citizenship_type()
+        return few_shot_template_resident_population_birthplace_citizenship_type()
     else:
         return zero_shot_template()
     
     
 
 
-def open_ai_call(question, table_name):
-    #project_key = "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"
-    project_key = "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"
-    os.environ["OPENAI_API_KEY"] = project_key
+def open_ai_call(question, table_name, api_key):
+    os.environ["OPENAI_API_KEY"] = api_key
     prompt_template = find_template(table_name)  # divorces_duration_of_marriage_age_classes.json
 
     model_name = "gpt-3.5-turbo-16k"

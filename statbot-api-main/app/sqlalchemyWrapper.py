@@ -2,22 +2,13 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Any, Iterable, List, Optional
-import sys
-from sqlalchemy import MetaData, create_engine, inspect, select, text, func,engine
+
+from sqlalchemy import MetaData, create_engine, inspect, select, text, func
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import ProgrammingError, SQLAlchemyError
 from sqlalchemy.schema import CreateTable
 
-from psycopg2 import OperationalError, errorcodes, errors
 
-
-
-def _format_index(index: engine.interfaces.ReflectedIndex) -> str:
-    return (
-        f'Name: {index["name"]}, Unique: {index["unique"]},'
-        f' Columns: {str(index["column_names"])}'
-    )
-    
 class SQLDatabase:
     """SQLAlchemy wrapper around a database."""
     def __init__(
@@ -30,10 +21,6 @@ class SQLDatabase:
         sample_rows_in_table_info: int = 3,
         custom_table_info: Optional[dict] = None,
         only_bind_include_tables: bool = False,
-        low_cardinality_threshold: int = 10,
-        indexes_in_table_info: bool = False,
-        view_support: bool = False,
-        max_string_length: int = 300,
     ):
         """Create engine from database URI."""
         self._engine = engine
@@ -64,8 +51,7 @@ class SQLDatabase:
             raise TypeError("sample_rows_in_table_info must be an integer")
 
         self._sample_rows_in_table_info = sample_rows_in_table_info
-        self._low_cardinality_threshold = low_cardinality_threshold
-        self._indexes_in_table_info = indexes_in_table_info
+
         self._custom_table_info = custom_table_info
         if self._custom_table_info:
             if not isinstance(self._custom_table_info, dict):
@@ -106,17 +92,6 @@ class SQLDatabase:
         if self._include_tables:
             return self._include_tables
         return self._all_tables - self._ignore_tables
-    
-    def print_psycopg2_exception(self, err):
-        # get details about the exception
-        err_type, err_obj, traceback = sys.exc_info()
-
-        # get the line number when exception occured
-        line_num = traceback.tb_lineno
-        # print the connect() error
-        exception =f'''psycopg2 ERROR:", {err}, "on line number:", {line_num}
-        '''
-        return exception
 
     @property
     def table_info(self) -> str:
@@ -212,93 +187,7 @@ class SQLDatabase:
 
         final_str = "\n\n".join(tables)
         return final_str
-    def get_table_info_(self, table_names: Optional[List[str]] = None) -> str:
-        """
-        Get information about specified tables.
-        """
-        all_table_names = self.get_table_names()
-        if table_names is not None:
-            missing_tables = set(table_names).difference(all_table_names)
-            if missing_tables:
-                raise ValueError(f"table_names {missing_tables} not found in database")
-            all_table_names = table_names
 
-        meta_tables = [
-            tbl
-            for tbl in self._metadata.sorted_tables
-            if tbl.name in set(all_table_names)
-            and not (self.dialect == "sqlite" and tbl.name.startswith("sqlite_"))
-        ]
-
-        tables = []
-        for table in meta_tables:
-            if self._custom_table_info and table.name in self._custom_table_info:
-                tables.append(self._custom_table_info[table.name])
-                continue
-
-            # add create table command
-            create_table = str(CreateTable(table).compile(self._engine))
-            table_info = f"{create_table.rstrip()}"
-            if self._indexes_in_table_info:
-                table_info += f"\n{self._get_table_indexes(table)}\n"
-            if self._sample_rows_in_table_info:
-                try:
-                    table_info += f"\n{self._get_sample_rows(table)}\n"
-                except Exception:
-                    pass
-            tables.append(table_info)
-        tables.sort()
-        final_str = "\n\n".join(tables)
-        return final_str
-    
-    def _get_table_indexes(self, table: Table) -> str:
-        indexes = self._inspector.get_indexes(table.name)
-        indexes_formatted = "\n".join(map(_format_index, indexes))
-        return f"Table Indexes:\n{indexes_formatted}"
-    
-    def _get_sample_rows(self, table: Table) -> str:
-
-        limiting_factor = 200
-        # build the select command
-        command = select(table).limit(limiting_factor)
-
-        try:
-            with self._engine.connect() as connection:
-                response = ""
-                sample_rows_result = connection.execute(command)
-                sample_rows = sample_rows_result.fetchall()
-
-                 # Create sections for high and low cardinality columns
-                high_cardinality_section = f"/*\nColumns in {table.name} and {str(self._sample_rows_in_table_info)} examples in each column for high cardinality columns :"  # noqa: E501
-                low_cardinality_section = f"/*\nColumns in {table.name} and all categories for low cardinality columns :"  # noqa: E501
-
-                low_columns = ""
-                high_columns = ""
-                
-                for column, index in zip(table.columns,range(len(table.columns))):
-                    column_name = column.name
-                    values = [str(row[index]) for row in sample_rows]
-
-                    # Determine if the column is high or low cardinality based on the threshold  # noqa: E501
-                    unique_values = set(values)
-                    if len(unique_values) > self._low_cardinality_threshold:
-                        high_columns += f"\n{column_name} : {', '.join(list(unique_values)[:self._sample_rows_in_table_info])}"  # noqa: E501
-                    else:
-                        low_columns += f"\n{column_name} : {', '.join(unique_values)}"  # noqa: E501
-
-                if high_columns:
-                    high_cardinality_section += high_columns + "\n*/\n"
-                    response += high_cardinality_section
-
-                if low_columns:
-                    low_cardinality_section += low_columns + "\n*/"
-                    response += low_cardinality_section
-
-        except ProgrammingError:
-                response = ""
-
-        return response
-    
     def get_table_info_dict(self, table_names: Optional[List[str]] = None) -> dict:
         all_table_names = self.get_table_names()
         if table_names is not None:
@@ -329,29 +218,36 @@ class SQLDatabase:
             pk = []
             fks = []
             sample_rows = self.get_tbl_samples_dict(table)
-
-            sample_rows_ = self._get_sample_rows(table)
+            num_rows = self.get_rows_of_a_table(table)
             for col in table.columns:
-               
+                # distinct_values = self.count_distinct_values_of_a_col(table, col)
+                distinct_values = list(range(10)) # to solve the error
+                # cardinality = len(distinct_values) / num_rows
                 cols.append([col.name, str(col.type).split('.')[-1]])
                 if col.primary_key:
                     pk.append(col.name)
                 if len(col.foreign_keys) > 0:
                     for fk in list(col.foreign_keys):
                         fks.append([f'{table.name}.{col.name}', fk.target_fullname])
-
+                # here we use 3 simple conditions to filterout the categorical values:
+                # 1. cardinality < 0.3
+                # 2. total len(distinct_values) < 20
+                # 3. '_id' not in name or name is not equal to 'id'
+                # if cardinality < 0.5 and len(distinct_values) < 20 and (
+                #         '_id' not in col.name.lower() or col.name.lower() == 'id'):  # maybe a categorical value
+                #     col_details.append(
+                #         {'is_categorical': True, 'cardinality': cardinality, 'distinct_values': distinct_values})
+                # else:
+                #     col_details.append(
+                #         {'is_categorical': False, 'cardinality': cardinality, 'distinct_values': distinct_values[:20]})
             tables_dict[table.name] = {
                 'COL': cols,
                 'COL_DETAILS': col_details,
                 'PK': pk,
                 'FK': fks,
-                'sample_rows': sample_rows,
-                'sample_rows_cardinality':sample_rows_,
+                'sample_rows': sample_rows
             }
-        myKeys = list(tables_dict.keys())
-        myKeys.sort()
-        sorted_tables_dict = {i: tables_dict[i] for i in myKeys}
-        return sorted_tables_dict
+        return tables_dict
 
     def get_tbl_samples_dict(self, table):
         sample_rows_dict = {}
@@ -428,22 +324,16 @@ class SQLDatabase:
             if self._schema is not None:
                 connection.exec_driver_sql(
                     f"SET search_path TO {self._schema}")
-            try:
-                cursor = connection.execute(text(command))
-                if cursor.returns_rows:
-                    if fetch == "all":
-                        result = cursor.fetchall()[:10]
-                    elif fetch == "one":
-                        result = cursor.fetchone()[0]
-                  
-                    else:
-                        raise ValueError(
-                            "Fetch parameter must be either 'one' or 'all'")
-                    return True, str(result)
-            except Exception as err:
-            #psycopg2.Error as err:
-                return False, self.print_psycopg2_exception(err)
-            
+            cursor = connection.execute(text(command))
+            if cursor.returns_rows:
+                if fetch == "all":
+                    result = cursor.fetchall()
+                elif fetch == "one":
+                    result = cursor.fetchone()[0]
+                else:
+                    raise ValueError(
+                        "Fetch parameter must be either 'one' or 'all'")
+                return str(result)
         return ""
 
     def get_table_info_no_throw(self, table_names: Optional[List[str]] = None) -> str:
@@ -523,6 +413,15 @@ def aliastype(t):
         raise ValueError('Unsupported data type')
     return res
 
+    host = 'testbed.inode.igd.fraunhofer.de'
+    port = 18001
+    database = 'world_cup'
+    username = 'inode_readonly'
+    password = 'W8BYqhSemzyZ64YD'
+    database_uri = f'postgresql://{username}:{password}@{host}:{str(port)}/{database}'
+    db = SQLDatabase.from_uri(database_uri)
+    print(db.get_table_info_no_throw())
+    print(db.run('SELECT * FROM player LIMIT 5'))
 
 def formatting(ddl, alias=False):
 
@@ -554,27 +453,14 @@ def formatting(ddl, alias=False):
 
 
 
-def schema_db_postgres(include_tables=None, sample_number=0, alias=False):
-    host = '160.85.252.185'
-    port = 18001
-    database = 'postgres'
-    username = 'dbadmin@sdbpstatbot01'
-    password = '579fc314a8f73e881a9146901971d5b9'
-    schema = 'experiment'
-    database_uri = f'postgresql://{username}:{password}@{host}:{str(port)}/{database}'
-    db = SQLDatabase.from_uri(database_uri, schema=schema,
-                              include_tables= include_tables,
-                              sample_rows_in_table_info=sample_number)
 
-    # return formatting(db.get_table_info_dict())
-    return db.get_table_info_()
 
 def schema_db_postgres_statbot_zhaw(include_tables=None, sample_number=0, alias=False):
     host = '160.85.252.201'
     port = 18001
     database = 'postgres'
-    username = 'dbadmin@sdbpstatbot01'
-    password = '579fc314a8f73e881a9146901971d5b9'
+    username = 'statbot'
+    password = 'statbot'
     schema = 'experiment'
     database_uri = f'postgresql://{username}:{password}@{host}:{str(port)}/{database}'
     db = SQLDatabase.from_uri(database_uri, schema=schema,

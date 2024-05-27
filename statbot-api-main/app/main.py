@@ -4,6 +4,13 @@ from pydantic import BaseModel
 from typing import Union
 from gpt_call import  open_ai_call
 
+import os
+from dotenv import load_dotenv
+# Load environment variables from the .env file
+load_dotenv()
+# Get the Hugging Face API key from environment variables
+
+API_KEY = os.getenv('OPENAI_API_KEY')
 app = FastAPI()
 
 class QueryItem(BaseModel):
@@ -20,7 +27,8 @@ async def read_query(db_id, query:QueryItem):
 
 
 async def call_openai(db_id, query:QueryItem):
-    output=open_ai_call(query.question,db_id)
+    
+    output=open_ai_call(query.question,db_id, api_key=API_KEY)
     return {"message": {
         "db_id": db_id,
         "id":query.id,
